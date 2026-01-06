@@ -39,21 +39,7 @@ cd my-project
 cp -r ~/Desktop/project/python-dev-template/* .
 ```
 
-### ステップ2: cc-sdd をセットアップ
-
-```bash
-# 仕様駆動開発ツールをインストール
-npx cc-sdd@latest --claude --lang ja
-```
-
-### ステップ3: 品質ルールを統合
-
-```bash
-# QUALITY.md を cc-sdd に統合（これ重要！）
-cp QUALITY.md .kiro/steering/quality.md
-```
-
-### ステップ4: Python環境セットアップ
+### ステップ2: Python環境セットアップ
 
 ```bash
 # 仮想環境を作成
@@ -67,7 +53,28 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
-### ステップ5: GitHubにアップ
+### ステップ3: cc-sdd をセットアップ
+
+```bash
+# 仕様駆動開発ツールをインストール
+npx cc-sdd@latest --claude --lang ja
+```
+
+### ステップ4: 品質ルールを統合
+
+```bash
+# QUALITY.md を cc-sdd に統合（これ重要！）
+cp QUALITY.md .kiro/steering/quality.md
+```
+
+### ステップ5: pyproject.toml のプロジェクト名を変更
+
+```toml
+[project]
+name = "my-project"  # ← ここを変更
+```
+
+### ステップ6: GitHubにアップ
 
 ```bash
 # Git初期化
@@ -77,13 +84,6 @@ git commit -m "Initial setup"
 
 # GitHubリポジトリ作成＆プッシュ
 gh repo create msd-dev-lab/my-project --public --source=. --push
-```
-
-### ステップ6: pyproject.toml のプロジェクト名を変更
-
-```toml
-[project]
-name = "my-project"  # ← ここを変更
 ```
 
 ---
