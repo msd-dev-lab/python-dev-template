@@ -279,21 +279,27 @@ git commit -m "タスク2: 概要"
 
 **pushするとCodeRabbitが来てマージされてしまう。全タスク完了までローカルにとどめる。**
 
-### 全タスク完了後：push & PR
+### 全タスク完了後：リポジトリ作成 → push → PR
 
 ```bash
 # 1. Codexレビュー（OKまでループ）
 /codex-review
 
-# 2. push
-git push
+# 2. リポジトリがなければ作成
+gh repo create msd-dev-lab/リポジトリ名 --public
+git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
 
-# 3. PR作成
+# 3. push
+git push -u origin main
+
+# 4. PR作成
 gh pr create --title "機能名" --body "概要"
 
-# 4. マージ後にローカル更新
+# 5. マージ後にローカル更新
 git pull
 ```
+
+**リポジトリ名は開発内容に合わせて決める。**
 
 **このフローを省略しないこと。**
 
