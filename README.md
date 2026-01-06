@@ -82,8 +82,12 @@ git init
 git add .
 git commit -m "Initial setup"
 
-# GitHubリポジトリ作成＆プッシュ
-gh repo create msd-dev-lab/my-project --public --source=. --push
+# リポジトリ作成（名前は開発内容に合わせて決める）
+gh repo create msd-dev-lab/リポジトリ名 --public
+
+# リモート追加＆プッシュ
+git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
+git push -u origin main
 ```
 
 ---
