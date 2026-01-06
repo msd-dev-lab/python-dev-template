@@ -247,3 +247,6 @@ disallow_untyped_defs = false  # まずは警告のみ
 ## ライセンス
 
 MIT License - 自由に使ってください。
+
+## Test
+CodeRabbit動作確認テスト
