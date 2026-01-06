@@ -261,6 +261,41 @@ PR作成時にAIレビュー:
 
 ---
 
+## cc-sdd タスク完了後のフロー（MUST）
+
+cc-sddで全タスクが完了したら（最後のspec-impl終了後）、以下を**必ず実行**：
+
+### 1. Codexレビュー
+
+```bash
+/codex-review
+```
+
+OKになるまで修正→再レビューをループ。
+
+### 2. コミット＆プッシュ
+
+```bash
+git add .
+git commit -m "機能名: 概要"
+git push
+```
+
+### 3. PR作成
+
+```bash
+gh pr create --title "機能名" --body "概要"
+```
+
+### 4. 完了確認
+
+- PRが自動マージされるのを待つ
+- マージ後、ローカルを更新：`git pull`
+
+**このフローを省略しないこと。**
+
+---
+
 ## 参考リンク
 
 - [Ruff Documentation](https://docs.astral.sh/ruff/)
