@@ -38,8 +38,8 @@ cp -r ~/Desktop/project/python-dev-template/* .
 ### ステップ2: cc-sdd をセットアップ
 
 ```bash
-# 仕様駆動開発ツールをインストール（サブエージェント版推奨）
-npx cc-sdd@latest --claude-agent --lang ja
+# 仕様駆動開発ツールをインストール
+npx cc-sdd@latest --claude --lang ja
 ```
 
 ### ステップ3: 品質ルールを統合
