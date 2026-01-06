@@ -261,36 +261,39 @@ PR作成時にAIレビュー:
 
 ---
 
-## cc-sdd タスク完了後のフロー（MUST）
+## cc-sdd 開発中のルール（MUST）
 
-cc-sddで全タスクが完了したら（最後のspec-impl終了後）、以下を**必ず実行**：
-
-### 1. Codexレビュー
+### 開発中：ローカルコミットのみ（pushしない）
 
 ```bash
-/codex-review
-```
-
-OKになるまで修正→再レビューをループ。
-
-### 2. コミット＆プッシュ
-
-```bash
+# タスク1完了
 git add .
-git commit -m "機能名: 概要"
-git push
+git commit -m "タスク1: 概要"
+# ← pushしない！
+
+# タスク2完了
+git add .
+git commit -m "タスク2: 概要"
+# ← pushしない！
 ```
 
-### 3. PR作成
+**pushするとCodeRabbitが来てマージされてしまう。全タスク完了までローカルにとどめる。**
+
+### 全タスク完了後：push & PR
 
 ```bash
+# 1. Codexレビュー（OKまでループ）
+/codex-review
+
+# 2. push
+git push
+
+# 3. PR作成
 gh pr create --title "機能名" --body "概要"
+
+# 4. マージ後にローカル更新
+git pull
 ```
-
-### 4. 完了確認
-
-- PRが自動マージされるのを待つ
-- マージ後、ローカルを更新：`git pull`
 
 **このフローを省略しないこと。**
 
