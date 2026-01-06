@@ -1,0 +1,86 @@
+# ==============================================================================
+# Pre-commit Configuration
+# ==============================================================================
+# コミット前に自動でコード品質チェックを実行
+#
+# セットアップ:
+#   pip install pre-commit
+#   pre-commit install
+#
+# 手動実行:
+#   pre-commit run --all-files
+# ==============================================================================
+
+default_language_version:
+  python: python3.10
+
+repos:
+  # --------------------------------------------------------------------------
+  # Ruff: 高速Linter + Formatter
+  # --------------------------------------------------------------------------
+  # Flake8, isort, Black, Bandit を1ツールで実行
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff
+        name: ruff lint
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: ruff format
+
+  # --------------------------------------------------------------------------
+  # Mypy: 型チェック
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        name: mypy type check
+        args: [--config-file=pyproject.toml]
+        additional_dependencies: []  # 必要に応じて追加
+        pass_filenames: false
+        entry: mypy src/
+
+  # --------------------------------------------------------------------------
+  # 汎用チェック
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # ファイル品質
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+      - id: end-of-file-fixer
+        name: fix end of files
+      - id: mixed-line-ending
+        name: fix mixed line endings
+        args: [--fix=lf]
+
+      # 設定ファイル検証
+      - id: check-yaml
+        name: check yaml syntax
+      - id: check-toml
+        name: check toml syntax
+      - id: check-json
+        name: check json syntax
+
+      # セキュリティ
+      - id: detect-private-key
+        name: detect private keys
+      - id: check-added-large-files
+        name: check for large files
+        args: [--maxkb=1000]
+
+      # デバッグ
+      - id: debug-statements
+        name: check for debug statements
+      - id: check-merge-conflict
+        name: check for merge conflicts
+
+# ==============================================================================
+# CI 設定（GitHub Actions連携）
+# ==============================================================================
+ci:
+  autofix_commit_msg: "style: auto-fix by pre-commit hooks"
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  skip: [mypy]  # CIではGitHub Actionsでmypyを実行
