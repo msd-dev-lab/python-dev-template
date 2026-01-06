@@ -7,18 +7,22 @@
 ```
 あなた「〇〇作って」
     ↓
-Claude Code（実装）
+【cc-sdd】仕様 → 設計 → タスク → 実装
     ↓
-自動チェック（ruff, mypy, pytest）
+【codex-review】Codexレビュー → 修正 → 再レビュー（OKまでループ）
     ↓
-AIレビュー（CodeRabbit）
+【pre-commit】コード品質チェック
+    ↓
+【GitHub Actions】テスト実行
+    ↓
+【CodeRabbit】AIレビュー
     ↓
 自動マージ
     ↓
 プロ品質のコード完成
 ```
 
-**コードを読む必要なし。全部自動。**
+**5重チェック。コードを読む必要なし。全部自動。**
 
 ---
 
@@ -107,14 +111,24 @@ my-project/
 
 ## 開発の流れ
 
-### 1. 機能を作る
+### 1. 機能を作る（cc-sdd）
 
 ```bash
-# cc-sdd で仕様から実装まで自動化
-/kiro:spec-quick "ユーザー認証機能" --auto
+# 仕様から実装まで
+/kiro:spec-requirements "ユーザー認証機能"
+/kiro:spec-design "ユーザー認証機能"
+/kiro:spec-tasks "ユーザー認証機能"
+/kiro:spec-impl "ユーザー認証機能"
 ```
 
-### 2. コミット＆プッシュ
+### 2. Codexレビュー（コミット前）
+
+```bash
+# Codexがレビュー → 問題あれば修正 → OKになるまでループ
+/codex-review
+```
+
+### 3. コミット＆プッシュ
 
 ```bash
 git add .
@@ -122,13 +136,13 @@ git commit -m "ユーザー認証機能を追加"
 git push
 ```
 
-### 3. PR作成
+### 4. PR作成
 
 ```bash
 gh pr create --title "ユーザー認証機能" --body "認証機能を追加"
 ```
 
-### 4. 自動でチェック＆マージ
+### 5. 自動でチェック＆マージ
 
 - GitHub Actions が自動でテスト実行
 - CodeRabbit が自動でAIレビュー
@@ -138,14 +152,36 @@ gh pr create --title "ユーザー認証機能" --body "認証機能を追加"
 
 ---
 
-## 自動でやってくれること
+## 5重チェックの詳細
 
-| ツール | タイミング | やること |
-|--------|-----------|----------|
-| pre-commit | コミット時 | コード整形、Lint、型チェック |
-| GitHub Actions | プッシュ時 | テスト実行（Python 3.10/3.11/3.12） |
-| CodeRabbit | PR作成時 | AIコードレビュー |
-| 自動マージ | 全チェック通過後 | PRを自動でマージ |
+| 段階 | ツール | やること |
+|------|--------|----------|
+| 実装中 | cc-sdd | 仕様通りに実装されているかチェック |
+| コミット前 | codex-review | Codexがアーキテクチャ・セキュリティ・ロジックをレビュー |
+| コミット時 | pre-commit | コード整形、Lint、型チェック |
+| プッシュ後 | GitHub Actions | テスト実行（Python 3.10/3.11/3.12） |
+| PR作成後 | CodeRabbit | AIコードレビュー |
+
+---
+
+## codex-review の仕組み
+
+```
+/codex-review 実行
+    ↓
+規模判定（small / medium / large）
+    ↓
+Codexがレビュー（read-only）
+    ↓
+問題あり？
+  ├─ YES → Claude Codeが修正 → 再レビュー（ループ）
+  └─ NO → 完了（ok: true）
+```
+
+- **blocking**: 修正必須。1件でもあればループ継続
+- **advisory**: 推奨・警告。レポートに記載のみ
+
+OKになるまで最大5回ループ。品質が担保されてからコミットできる。
 
 ---
 
