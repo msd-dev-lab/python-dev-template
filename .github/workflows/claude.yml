@@ -1,19 +1,3 @@
-# ==============================================================================
-# Claude Code Actions Workflow
-# ==============================================================================
-# PR/Issue で @claude をメンションすると自動レビュー・応答
-#
-# 設定要件:
-#   - Claude GitHub App インストール済み (github.com/apps/claude)
-#   - リポジトリシークレット: CLAUDE_CODE_OAUTH_TOKEN (MAX プラン用)
-#   - ワークフロー権限: Read and write permissions
-#
-# レビュースキップ:
-#   - ドキュメントのみの変更 (*.md, docs/**)
-#   - GitHub設定ファイル (.github/**)
-#   - skip-review ラベル付きPR
-# ==============================================================================
-
 name: Claude Code
 
 on:
@@ -23,47 +7,44 @@ on:
     types: [created]
   issues:
     types: [opened, assigned]
-  pull_request_target:
-    types: [opened, synchronize]
-    # コード変更のみレビュー対象
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - '*.py'
-
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-  id-token: write
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   claude:
-    # skip-review ラベルがある場合はスキップ
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
-      (github.event_name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'skip-review'))
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@beta
+        id: claude
+        uses: anthropics/claude-code-action@v1
         with:
-          # MAX プラン OAuth トークン (API キーの代わりに使用)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # レビュー時の追加コンテキスト
-          custom_instructions: |
-            このリポジトリは Python 開発テンプレートです。
-            レビュー時は以下を確認してください:
-            - QUALITY.md のコーディング規約に準拠しているか
-            - 型ヒントが適切に使用されているか
-            - テストが十分に書かれているか
-            - セキュリティ上の問題がないか
 
-            日本語でレビューコメントを記述してください。
+          # This is an optional setting that allows Claude to read CI results on PRs
+          additional_permissions: |
+            actions: read
+
+          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
+          # prompt: 'Update the pull request description to include a summary of changes.'
+
+          # Optional: Add claude_args to customize behavior and configuration
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
+          # claude_args: '--allowed-tools Bash(gh pr:*)'
+
