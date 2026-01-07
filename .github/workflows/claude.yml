@@ -28,14 +28,8 @@ on:
     # コード変更のみレビュー対象
     paths:
       - 'src/**'
-      - '*.py'
       - 'tests/**'
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-      - '.github/**'
-      - 'LICENSE'
-      - '.gitignore'
+      - '*.py'
 
 permissions:
   contents: read
