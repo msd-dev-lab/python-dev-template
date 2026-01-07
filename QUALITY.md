@@ -41,7 +41,104 @@ pre-commit run --all-files          # 全ファイルチェック
 
 ---
 
-## 品質基準（MUST）
+## 品質スコアリング基準
+
+コードレビュー時の評価基準。**80点以上で合格**。
+
+| カテゴリ | 配点 | チェック内容 |
+|---------|------|-------------|
+| 正確性 | 30点 | ロジック正確、エッジケース処理、エラーハンドリング、null チェック |
+| セキュリティ | 25点 | 入力検証、SQLi対策、XSS対策、シークレット管理（OWASP Top 10準拠） |
+| パフォーマンス | 20点 | N+1クエリ回避、適切なインデックス、アルゴリズム効率、メモリ管理 |
+| 保守性 | 15点 | 明確な命名、単一責任、DRY原則、型安全 |
+| テスト | 10点 | カバレッジ、テスト品質 |
+
+---
+
+## コミットメッセージ規約
+
+Conventional Commits形式を使用。
+
+### フォーマット
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Type一覧
+
+| Type | 用途 |
+|------|------|
+| feat | 新機能 |
+| fix | バグ修正 |
+| docs | ドキュメント更新 |
+| style | コード整形（動作に影響なし） |
+| refactor | リファクタリング |
+| perf | パフォーマンス改善 |
+| test | テスト追加・修正 |
+| chore | メンテナンス |
+
+### ルール
+
+- subject は**命令形**（add, fix, update）
+- subject は**50文字以内**
+- subject の末尾に**ピリオドなし**
+- コロン後は**小文字**で開始
+
+### 例
+
+```bash
+# Good
+feat(auth): add OAuth login
+fix(api): handle null response from server
+docs(readme): update installation steps
+
+# Bad
+feat: Add User Authentication  # 大文字NG
+fix: fixed bug.  # 過去形NG、ピリオドNG
+```
+
+---
+
+## ドキュメント基準
+
+### 関数ドキュメント（必須）
+
+```python
+def process_user(user_id: int, options: dict) -> User:
+    """ユーザー情報を処理して返す.
+
+    Args:
+        user_id: ユーザーID
+        options: 処理オプション
+
+    Returns:
+        処理済みのUserオブジェクト
+
+    Raises:
+        ValueError: user_idが無効な場合
+
+    Example:
+        >>> user = process_user(123, {"validate": True})
+        >>> print(user.name)
+    """
+```
+
+### README必須項目
+
+- プロジェクト説明
+- インストール手順
+- クイックスタート（使用例）
+- 設定オプション
+- ライセンス
+
+---
+
+## 品質チェックリスト（MUST）
 
 ### コード変更時のチェックリスト
 
