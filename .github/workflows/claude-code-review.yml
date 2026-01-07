@@ -20,7 +20,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # REVIEW_LOG.md への書き込みに必要
       pull-requests: read
       issues: read
       id-token: write
@@ -40,18 +40,45 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            ## タスク1: PRレビュー
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            **必ず QUALITY.md を読んでからレビューを開始すること。**
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            QUALITY.md のルールに基づいて以下を確認：
+            - コーディング規約（型ヒント、docstring、命名規則）
+            - セキュリティ規約（入力検証、シークレット管理）
+            - 品質スコアリング基準（正確性、セキュリティ、パフォーマンス等）
+            - 禁止事項（テストなし機能追加、例外握りつぶし等）
+            - テスト規約（AAA パターン、カバレッジ）
+
+            レビュー結果を `gh pr comment` でコメント投稿。
+
+            ## タスク2: 重要な指摘のみ REVIEW_LOG.md に蓄積
+
+            以下の条件を**すべて満たす**指摘のみ REVIEW_LOG.md に追記：
+
+            **蓄積対象（AND条件）:**
+            1. 重要度が critical または important
+            2. カテゴリが以下のいずれか:
+               - security（セキュリティ脆弱性）
+               - bug（バグ・ロジックエラー）
+               - performance（パフォーマンス問題）
+               - typing（型安全性の問題）
+               - error-handling（例外処理の不備）
+
+            **除外:**
+            - style（フォーマット、命名）
+            - docs（ドキュメント）
+            - minor, advisory な指摘
+
+            **蓄積形式（該当する指摘がある場合のみ追記）:**
+            ```markdown
+            | 2026-01-08 | src/file.py:45 | security | 入力検証なし（SQLインジェクション） |
+            ```
+
+            該当する指摘がなければ REVIEW_LOG.md への追記は不要。
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Edit,Read,Bash(git add:*),Bash(git commit:*),Bash(git push:*)"'
 
