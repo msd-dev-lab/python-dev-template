@@ -90,6 +90,20 @@ git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
 git push -u origin main
 ```
 
+### ステップ7: Claude Code Actions セットアップ
+
+```bash
+# Claude GitHub App とシークレットを自動設定
+claude /install-github-app
+```
+
+→ リポジトリ名を入力（`msd-dev-lab/リポジトリ名`）
+→ ブラウザで認証
+→ ワークフローファイル更新の確認（「1. Update workflow file」を選択）
+→ 完了（PRが自動作成されるのでマージ）
+
+**これで Claude Code Actions が使えるようになります。**
+
 ---
 
 ## 統合後のフォルダ構成
@@ -105,7 +119,8 @@ my-project/
 │
 ├── .github/workflows/
 │   ├── ci.yml                  # GitHub Actions（自動テスト）
-│   └── claude.yml              # Claude Code Actions（AIレビュー）
+│   ├── claude.yml              # Claude Code Actions（@claudeメンション）
+│   └── claude-code-review.yml  # Claude Code Actions（PR自動レビュー）
 ├── src/                        # ソースコード
 ├── tests/                      # テストコード
 ├── pyproject.toml              # 設定ファイル
@@ -192,17 +207,27 @@ OKになるまで最大5回ループ。品質が担保されてからコミッ�
 
 ---
 
-## Claude Code Actions セットアップ（初回のみ）
+## Claude Code Actions セットアップ
+
+### 初回のみ（Organization 全体）
 
 1. https://github.com/apps/claude にアクセス
 2. 「Install」をクリック
 3. Organization（msd-dev-lab）を選択
 4. 「All repositories」を選択
 5. 「Install & Authorize」をクリック
-6. `claude setup-token` でOAuthトークンを取得
-7. リポジトリの Settings → Secrets に `CLAUDE_CODE_OAUTH_TOKEN` を追加
 
-**一度やれば、今後のリポジトリは自動で対象になる。**
+### 新規リポジトリごとに必要
+
+シークレットはリポジトリ単位なので、新規プロジェクト作成時に実行：
+
+```bash
+claude /install-github-app
+```
+
+→ リポジトリ名を入力 → ブラウザで認証 → 自動でシークレット設定
+
+**注意:** Organization secrets は無料プランでは使えないため、各リポジトリで実行が必要。
 
 ### レビュー知見の蓄積
 
