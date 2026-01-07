@@ -53,9 +53,9 @@ jobs:
 
             レビュー結果を `gh pr comment` でコメント投稿。
 
-            ## タスク2: 重要な指摘のみ REVIEW_LOG.md に蓄積
+            ## タスク2: 重要な指摘のみテンプレートリポジトリの REVIEW_LOG.md に蓄積
 
-            以下の条件を**すべて満たす**指摘のみ REVIEW_LOG.md に追記：
+            以下の条件を**すべて満たす**指摘がある場合のみ、テンプレートリポジトリに追記：
 
             **蓄積対象（AND条件）:**
             1. 重要度が critical または important
@@ -71,14 +71,34 @@ jobs:
             - docs（ドキュメント）
             - minor, advisory な指摘
 
-            **蓄積形式（該当する指摘がある場合のみ追記）:**
-            ```markdown
-            | 2026-01-08 | src/file.py:45 | security | 入力検証なし（SQLインジェクション） |
+            **テンプレートリポジトリへの追記手順（該当する指摘がある場合のみ）:**
+
+            1. 現在のREVIEW_LOG.mdを取得:
+            ```bash
+            response=$(GH_TOKEN=${{ secrets.TEMPLATE_REPO_TOKEN }} gh api repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md)
+            current_content=$(echo "$response" | jq -r .content | base64 -d)
+            current_sha=$(echo "$response" | jq -r .sha)
             ```
 
-            該当する指摘がなければ REVIEW_LOG.md への追記は不要。
+            2. 新しい行を追加（形式: `| 日付 | ファイル:行 | カテゴリ | 指摘内容 |`）:
+            ```bash
+            new_line="| $(date +%Y-%m-%d) | src/file.py:45 | security | 入力検証なし |"
+            new_content="${current_content}\n${new_line}"
+            ```
+
+            3. テンプレートリポジトリに push:
+            ```bash
+            echo "$new_content" | base64 | GH_TOKEN=${{ secrets.TEMPLATE_REPO_TOKEN }} gh api \
+              repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md \
+              -X PUT \
+              -f message="chore: add review log from ${{ github.repository }}" \
+              -f content=@- \
+              -f sha="$current_sha"
+            ```
+
+            該当する指摘がなければこのタスクはスキップ。
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Edit,Read,Bash(git add:*),Bash(git commit:*),Bash(git push:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*),Bash(jq:*),Bash(date:*),Bash(base64:*),Bash(echo:*),Read"'
 
