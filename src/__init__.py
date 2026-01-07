@@ -11,3 +11,4 @@ __version__ = "0.1.0"
 def greet(name: str) -> str:
     """挨拶メッセージを返す（テスト用）."""
     return f"Hello, {name}!"
+
