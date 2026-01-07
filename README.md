@@ -97,9 +97,9 @@ git push -u origin main
 claude /install-github-app
 ```
 
-→ リポジトリ名を入力（`msd-dev-lab/リポジトリ名`）
+→ リポジトリ名を聞かれる → **ステップ6で作成したリポジトリ名**（`msd-dev-lab/リポジトリ名`）を入力
 → ブラウザで認証
-→ ワークフローファイル更新の確認（「1. Update workflow file」を選択）
+→ ワークフローファイル更新の確認 → 「1. Update workflow file」を選択
 → 完了（PRが自動作成されるのでマージ）
 
 **これで Claude Code Actions が使えるようになります。**
