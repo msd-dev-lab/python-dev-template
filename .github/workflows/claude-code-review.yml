@@ -34,71 +34,88 @@ jobs:
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
+        env:
+          REVIEW_FINDINGS: review-findings.json
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            ## タスク1: PRレビュー
-
             **必ず QUALITY.md を読んでからレビューを開始すること。**
 
-            QUALITY.md のルールに基づいて以下を確認：
+            QUALITY.md のルールに基づいてレビュー：
             - コーディング規約（型ヒント、docstring、命名規則）
             - セキュリティ規約（入力検証、シークレット管理）
-            - 品質スコアリング基準（正確性、セキュリティ、パフォーマンス等）
-            - 禁止事項（テストなし機能追加、例外握りつぶし等）
-            - テスト規約（AAA パターン、カバレッジ）
+            - 品質スコアリング基準
+            - 禁止事項
+            - テスト規約
 
-            レビュー結果を `gh pr comment` でコメント投稿。
+            レビュー後、以下を実行：
 
-            ## タスク2: 重要な指摘のみテンプレートリポジトリの REVIEW_LOG.md に蓄積
+            1. **`gh pr comment` でレビュー結果を投稿**
 
-            以下の条件を**すべて満たす**指摘がある場合のみ、テンプレートリポジトリに追記：
+            2. **Critical または Important な指摘を review-findings.json に保存**
 
-            **蓄積対象（AND条件）:**
-            1. 重要度が critical または important
-            2. カテゴリが以下のいずれか:
-               - security（セキュリティ脆弱性）
-               - bug（バグ・ロジックエラー）
-               - performance（パフォーマンス問題）
-               - typing（型安全性の問題）
-               - error-handling（例外処理の不備）
+            以下の条件を満たす指摘のみ記録：
+            - 重要度: critical または important
+            - カテゴリ: security, bug, performance, typing, error-handling
+            - 除外: style, docs, minor
 
-            **除外:**
-            - style（フォーマット、命名）
-            - docs（ドキュメント）
-            - minor, advisory な指摘
-
-            **テンプレートリポジトリへの追記手順（該当する指摘がある場合のみ）:**
-
-            1. 現在のREVIEW_LOG.mdを取得:
-            ```bash
-            response=$(GH_TOKEN=${{ secrets.TEMPLATE_REPO_TOKEN }} gh api repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md)
-            current_content=$(echo "$response" | jq -r .content | base64 -d)
-            current_sha=$(echo "$response" | jq -r .sha)
+            形式:
+            ```json
+            [
+              {"file": "src/__init__.py:17", "category": "security", "issue": "SQLインジェクション脆弱性"},
+              {"file": "src/api.py:45", "category": "typing", "issue": "型ヒントなし"}
+            ]
             ```
 
-            2. 新しい行を追加（形式: `| 日付 | ファイル:行 | カテゴリ | 指摘内容 |`）:
-            ```bash
-            new_line="| $(date +%Y-%m-%d) | src/file.py:45 | security | 入力検証なし |"
-            new_content="${current_content}\n${new_line}"
-            ```
-
-            3. テンプレートリポジトリに push:
-            ```bash
-            echo "$new_content" | base64 | GH_TOKEN=${{ secrets.TEMPLATE_REPO_TOKEN }} gh api \
-              repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md \
-              -X PUT \
-              -f message="chore: add review log from ${{ github.repository }}" \
-              -f content=@- \
-              -f sha="$current_sha"
-            ```
-
-            該当する指摘がなければこのタスクはスキップ。
+            該当する指摘がなければ空配列 `[]` を保存。
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*),Bash(jq:*),Bash(date:*),Bash(base64:*),Bash(echo:*),Read"'
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Read,Write"'
+
+      - name: Update Template REVIEW_LOG
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+        run: |
+          # review-findings.json の存在確認
+          if [ ! -f "review-findings.json" ]; then
+            echo "No review findings file found, skipping..."
+            exit 0
+          fi
+
+          # 指摘が空でないか確認
+          findings_count=$(jq 'length' review-findings.json)
+          if [ "$findings_count" -eq 0 ]; then
+            echo "No critical/important findings, skipping..."
+            exit 0
+          fi
+
+          echo "Found $findings_count critical/important findings"
+
+          # テンプレートリポジトリの REVIEW_LOG.md を取得
+          response=$(gh api repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md)
+          current_content=$(echo "$response" | jq -r .content | base64 -d)
+          current_sha=$(echo "$response" | jq -r .sha)
+
+          # 新しい行を追加
+          date=$(date +%Y-%m-%d)
+          new_content="$current_content"
+
+          jq -r '.[] | "| '"$date"' | ${{ github.repository }} | \(.file) | \(.category) | \(.issue) |"' review-findings.json | while read line; do
+            new_content="${new_content}\n${line}"
+          done
+
+          # テンプレートリポジトリに push
+          echo "$new_content" | base64 | gh api \
+            repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md \
+            -X PUT \
+            -f message="chore: add review log from ${{ github.repository }} PR#${{ github.event.pull_request.number }}" \
+            -f content=@- \
+            -f sha="$current_sha"
+
+          echo "Successfully updated REVIEW_LOG.md with $findings_count findings"
 
