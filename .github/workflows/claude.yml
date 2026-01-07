@@ -1,0 +1,74 @@
+# ==============================================================================
+# Claude Code Actions Workflow
+# ==============================================================================
+# PR/Issue で @claude をメンションすると自動レビュー・応答
+#
+# 設定要件:
+#   - Claude GitHub App インストール済み (github.com/apps/claude)
+#   - リポジトリシークレット: CLAUDE_CODE_OAUTH_TOKEN (MAX プラン用)
+#   - ワークフロー権限: Read and write permissions
+#
+# レビュースキップ:
+#   - ドキュメントのみの変更 (*.md, docs/**)
+#   - GitHub設定ファイル (.github/**)
+#   - skip-review ラベル付きPR
+# ==============================================================================
+
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_target:
+    types: [opened, synchronize]
+    # コード変更のみレビュー対象
+    paths:
+      - 'src/**'
+      - '*.py'
+      - 'tests/**'
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude:
+    # skip-review ラベルがある場合はスキップ
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
+      (github.event_name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'skip-review'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@beta
+        with:
+          # MAX プラン OAuth トークン (API キーの代わりに使用)
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # レビュー時の追加コンテキスト
+          custom_instructions: |
+            このリポジトリは Python 開発テンプレートです。
+            レビュー時は以下を確認してください:
+            - QUALITY.md のコーディング規約に準拠しているか
+            - 型ヒントが適切に使用されているか
+            - テストが十分に書かれているか
+            - セキュリティ上の問題がないか
+
+            日本語でレビューコメントを記述してください。

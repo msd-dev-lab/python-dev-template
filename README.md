@@ -15,7 +15,7 @@
     ↓
 【GitHub Actions】テスト実行
     ↓
-【CodeRabbit】AIレビュー
+【Claude Code Actions】AIレビュー
     ↓
 自動マージ
     ↓
@@ -103,12 +103,15 @@ my-project/
 │       ├── project.md          # プロジェクト情報
 │       └── quality.md          # ← 品質ルール（統合したやつ）
 │
-├── .github/workflows/ci.yml    # GitHub Actions（自動テスト）
+├── .github/workflows/
+│   ├── ci.yml                  # GitHub Actions（自動テスト）
+│   └── claude.yml              # Claude Code Actions（AIレビュー）
 ├── src/                        # ソースコード
 ├── tests/                      # テストコード
 ├── pyproject.toml              # 設定ファイル
 ├── .pre-commit-config.yaml     # コミット前チェック
-└── QUALITY.md                  # 品質ルール（元ファイル）
+├── QUALITY.md                  # 品質ルール（元ファイル）
+└── REVIEW_LOG.md               # レビュー知見の蓄積（テンプレートのみ）
 ```
 
 ---
@@ -149,7 +152,7 @@ gh pr create --title "ユーザー認証機能" --body "認証機能を追加"
 ### 5. 自動でチェック＆マージ
 
 - GitHub Actions が自動でテスト実行
-- CodeRabbit が自動でAIレビュー
+- Claude Code Actions が自動でAIレビュー
 - 全部通ったら自動マージ
 
 **PRがなくなれば完了！**
@@ -164,7 +167,7 @@ gh pr create --title "ユーザー認証機能" --body "認証機能を追加"
 | コミット前 | codex-review | Codexがアーキテクチャ・セキュリティ・ロジックをレビュー |
 | コミット時 | pre-commit | コード整形、Lint、型チェック |
 | プッシュ後 | GitHub Actions | テスト実行（Python 3.10/3.11/3.12） |
-| PR作成後 | CodeRabbit | AIコードレビュー |
+| PR作成後 | Claude Code Actions | AIコードレビュー |
 
 ---
 
@@ -189,15 +192,35 @@ OKになるまで最大5回ループ。品質が担保されてからコミッ�
 
 ---
 
-## CodeRabbit セットアップ（初回のみ）
+## Claude Code Actions セットアップ（初回のみ）
 
-1. https://github.com/marketplace/coderabbit にアクセス
-2. 「Install it for free」をクリック
+1. https://github.com/apps/claude にアクセス
+2. 「Install」をクリック
 3. Organization（msd-dev-lab）を選択
 4. 「All repositories」を選択
 5. 「Install & Authorize」をクリック
+6. `claude setup-token` でOAuthトークンを取得
+7. リポジトリの Settings → Secrets に `CLAUDE_CODE_OAUTH_TOKEN` を追加
 
 **一度やれば、今後のリポジトリは自動で対象になる。**
+
+### レビュー知見の蓄積
+
+レビューで得られた知見は以下のサイクルで蓄積：
+
+```
+プロジェクトでレビュー指摘を受ける
+    ↓
+テンプレートの REVIEW_LOG.md に追記
+    ↓
+3回以上出現したパターン
+    ↓
+QUALITY.md に昇格（ルール化）
+    ↓
+新プロジェクトは学習済みルールで開始
+    ↓
+レビュー指摘が減る
+```
 
 ---
 
