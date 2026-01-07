@@ -11,3 +11,8 @@ __version__ = "0.1.0"
 def greet(name: str) -> str:
     """挨拶メッセージを返す（テスト用）."""
     return f"Hello, {name}!"
+
+
+def add(a: int, b: int) -> int:
+    """2つの数値を足す（テスト用）."""
+    return a + b
