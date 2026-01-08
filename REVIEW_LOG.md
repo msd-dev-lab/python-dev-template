@@ -60,3 +60,7 @@
 - **typing**: 型ヒント関連
 - **style**: コードスタイル関連
 - **architecture**: 設計・アーキテクチャ関連
+| 2026-01-08 | msd-dev-lab/python-dev-template | src/__init__.py:17 | security | SQLインジェクション脆弱性 - パラメータ化されていないクエリ |
+| 2026-01-08 | msd-dev-lab/python-dev-template | src/__init__.py:11 | typing | 型ヒントなし - 関数パラメータと戻り値に型アノテーションが欠落 |
+| 2026-01-08 | msd-dev-lab/python-dev-template | src/__init__.py:11 | security | 入力検証なし - user_input のバリデーションが欠落 |
+| 2026-01-08 | msd-dev-lab/python-dev-template | src/__init__.py:11-20 | error-handling | エラーハンドリングなし - データベース操作に try-except ブロックが欠落 |
