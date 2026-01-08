@@ -101,20 +101,22 @@ jobs:
           current_content=$(echo "$response" | jq -r .content | base64 -d)
           current_sha=$(echo "$response" | jq -r .sha)
 
+          # 一時ファイルに現在の内容を書き込み
+          echo "$current_content" > /tmp/review_log.md
+
           # 新しい行を追加
           date=$(date +%Y-%m-%d)
-          new_content="$current_content"
+          jq -r '.[] | "| '"$date"' | ${{ github.repository }} | \(.file) | \(.category) | \(.issue) |"' review-findings.json >> /tmp/review_log.md
 
-          jq -r '.[] | "| '"$date"' | ${{ github.repository }} | \(.file) | \(.category) | \(.issue) |"' review-findings.json | while read line; do
-            new_content="${new_content}\n${line}"
-          done
+          # base64エンコード
+          new_content_b64=$(base64 -w 0 < /tmp/review_log.md)
 
           # テンプレートリポジトリに push
-          echo "$new_content" | base64 | gh api \
+          gh api \
             repos/msd-dev-lab/python-dev-template/contents/REVIEW_LOG.md \
             -X PUT \
             -f message="chore: add review log from ${{ github.repository }} PR#${{ github.event.pull_request.number }}" \
-            -f content=@- \
+            -f content="$new_content_b64" \
             -f sha="$current_sha"
 
           echo "Successfully updated REVIEW_LOG.md with $findings_count findings"
