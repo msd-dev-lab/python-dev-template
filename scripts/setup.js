@@ -149,6 +149,40 @@ function setupPythonEnvironment() {
   }
 }
 
+function syncSkills() {
+  log.step('🎯 Step 5: Claude Code Skills の同期');
+
+  const skillsSource = join(projectRoot, 'skills');
+  const skillsTarget = join(process.env.HOME, '.claude', 'skills');
+
+  if (!existsSync(skillsSource)) {
+    log.warning('skills/ ディレクトリが見つかりません');
+    return;
+  }
+
+  const skills = ['codex-review', 'codex-review-requirements', 'gemini-research'];
+  let syncedCount = 0;
+
+  for (const skill of skills) {
+    const sourcePath = join(skillsSource, skill, 'skill.md');
+    const targetDir = join(skillsTarget, skill);
+    const targetPath = join(targetDir, 'skill.md');
+
+    if (existsSync(sourcePath)) {
+      mkdirSync(targetDir, { recursive: true });
+      copyFileSync(sourcePath, targetPath);
+      log.success(`${skill} を同期しました`);
+      syncedCount++;
+    } else {
+      log.warning(`${skill}/skill.md が見つかりません`);
+    }
+  }
+
+  if (syncedCount > 0) {
+    log.success(`${syncedCount} 個のスキルを ~/.claude/skills/ に同期しました`);
+  }
+}
+
 function showNextSteps() {
   log.step('🎉 セットアップ完了！');
 
@@ -183,6 +217,7 @@ async function main() {
     setupQualityRules();
     await updatePyprojectToml();
     setupPythonEnvironment();
+    syncSkills();
     showNextSteps();
   } catch (error) {
     log.error('セットアップ中にエラーが発生しました');
