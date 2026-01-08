@@ -42,14 +42,19 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            **必ず QUALITY.md を読んでからレビューを開始すること。**
+            **必ず QUALITY.md と REVIEW_LOG.md を読んでからレビューを開始すること。**
 
-            QUALITY.md のルールに基づいてレビュー：
-            - コーディング規約（型ヒント、docstring、命名規則）
-            - セキュリティ規約（入力検証、シークレット管理）
-            - 品質スコアリング基準
-            - 禁止事項
-            - テスト規約
+            1. **QUALITY.md**: コード品質ルール
+               - コーディング規約（型ヒント、docstring、命名規則）
+               - セキュリティ規約（入力検証、シークレット管理）
+               - 品質スコアリング基準
+               - 禁止事項
+               - テスト規約
+
+            2. **REVIEW_LOG.md**: 過去のレビュー知見
+               - 同じプロジェクトで過去に指摘された問題がないか確認
+               - 他プロジェクトでも頻出する問題パターンがないか確認
+               - 3回以上出現したパターンは特に注意
 
             レビュー後、以下を実行：
 
@@ -120,4 +125,3 @@ jobs:
             -f sha="$current_sha"
 
           echo "Successfully updated REVIEW_LOG.md with $findings_count findings"
-

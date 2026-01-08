@@ -15,7 +15,18 @@ cp QUALITY.md CLAUDE.md
 `.kiro/steering/` にコピーして統合:
 ```bash
 cp QUALITY.md .kiro/steering/quality.md
+cp REVIEW_LOG.md .kiro/steering/review-log.md
 ```
+
+**配置場所について:**
+- `.kiro/steering/` = AI指導ルール（プロジェクトメモリとして全コマンドから参照）
+- cc-sddの全コマンド（/kiro:spec-requirements、/kiro:spec-impl等）が自動的に読み込む
+- セッションクリアしても永続的に参照される
+
+**REVIEW_LOG.md の役割:**
+- 過去のレビューで見つかった頻出パターンを確認
+- 実装・検証時に同じミスを繰り返さないための参考資料
+- 3回以上出現したパターンは QUALITY.md に昇格される
 
 ---
 

@@ -1,0 +1,21 @@
+{
+  "name": "@msd-dev-lab/python-dev-template",
+  "version": "1.0.0",
+  "description": "Python development template with automated quality checks",
+  "type": "module",
+  "bin": {
+    "setup-python-dev": "./scripts/setup.js"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": [
+    "python",
+    "template",
+    "development",
+    "quality",
+    "cc-sdd"
+  ],
+  "author": "msd-dev-lab",
+  "license": "MIT"
+}

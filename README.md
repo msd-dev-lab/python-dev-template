@@ -35,46 +35,33 @@
 mkdir my-project
 cd my-project
 
-# テンプレートをコピー
-cp -r ~/Desktop/project/python-dev-template/* .
+# テンプレートをコピー（.git を除外）
+rsync -av --exclude='.git' ~/Desktop/project/python-dev-template/ .
 ```
 
-### ステップ2: Python環境セットアップ
-
-```bash
-# 仮想環境を作成
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 依存関係をインストール
-pip install -e ".[dev]"
-
-# pre-commit をセットアップ
-pre-commit install
-```
-
-### ステップ3: cc-sdd をセットアップ
+### ステップ2: cc-sdd をセットアップ
 
 ```bash
 # 仕様駆動開発ツールをインストール
 npx cc-sdd@latest --claude --lang ja
 ```
 
-### ステップ4: 品質ルールを統合
+### ステップ3: ワンコマンドセットアップ 🚀
 
 ```bash
-# QUALITY.md を cc-sdd に統合（これ重要！）
-cp QUALITY.md .kiro/steering/quality.md
+# 品質ルール配置 + Python環境 + プロジェクト名設定を自動実行
+npx setup-python-dev
 ```
 
-### ステップ5: pyproject.toml のプロジェクト名を変更
+このコマンドが自動的に：
+- ✅ `.kiro/steering/` ディレクトリを作成
+- ✅ QUALITY.md と REVIEW_LOG.md を `.kiro/steering/` に配置
+- ✅ pyproject.toml のプロジェクト名を対話的に設定
+- ✅ Python 仮想環境を作成（venv）
+- ✅ 依存関係をインストール（pip install -e ".[dev]"）
+- ✅ pre-commit をセットアップ
 
-```toml
-[project]
-name = "my-project"  # ← ここを変更
-```
-
-### ステップ6: GitHubにアップ
+### ステップ4: GitHubにアップ
 
 ```bash
 # Git初期化
@@ -90,19 +77,31 @@ git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
 git push -u origin main
 ```
 
-### ステップ7: Claude Code Actions セットアップ
+### ステップ5: Claude Code Actions セットアップ
 
 ```bash
 # Claude GitHub App とシークレットを自動設定
 claude /install-github-app
 ```
 
-→ リポジトリ名を聞かれる → **ステップ6で作成したリポジトリ名**（`msd-dev-lab/リポジトリ名`）を入力
+→ リポジトリ名を聞かれる → **ステップ4で作成したリポジトリ名**（`msd-dev-lab/リポジトリ名`）を入力
 → ブラウザで認証
 → ワークフローファイル更新の確認 → 「1. Update workflow file」を選択
 → 完了（PRが自動作成されるのでマージ）
 
-**これで Claude Code Actions が使えるようになります。**
+### ステップ6: プロジェクトメモリを作成（初回のみ）
+
+```bash
+# Claude Code で以下を実行
+/kiro:steering
+```
+
+このコマンドが：
+- ✅ 既存の `quality.md` と `review-log.md` を参照しながら
+- ✅ `product.md`, `tech.md`, `structure.md` を生成
+- ✅ プロジェクト全体のコンテキストを確立
+
+**これでセットアップ完了！開発を開始できます。**
 
 ---
 
@@ -111,11 +110,14 @@ claude /install-github-app
 ```
 my-project/
 ├── .kiro/                      # cc-sdd（仕様駆動開発）
-│   ├── settings/               # テンプレート
+│   ├── settings/               # テンプレート・ルール
 │   ├── specs/                  # 仕様書
-│   └── steering/
-│       ├── project.md          # プロジェクト情報
-│       └── quality.md          # ← 品質ルール（統合したやつ）
+│   └── steering/               # プロジェクトメモリ（全コマンドから参照）
+│       ├── quality.md          # ← 品質ルール（要件定義・実装時に参照）
+│       ├── review-log.md       # ← レビュー知見（頻出パターン）
+│       ├── product.md          # プロジェクト情報（/kiro:steering で生成）
+│       ├── tech.md             # 技術スタック（/kiro:steering で生成）
+│       └── structure.md        # 構造パターン（/kiro:steering で生成）
 │
 ├── .github/workflows/
 │   ├── ci.yml                  # GitHub Actions（自動テスト）
