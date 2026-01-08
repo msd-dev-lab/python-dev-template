@@ -1,0 +1,23 @@
+{
+  "name": "setup-python-dev",
+  "version": "1.0.0",
+  "description": "Python development template setup automation",
+  "bin": {
+    "setup-python-dev": "./setup.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "python",
+    "template",
+    "setup",
+    "cc-sdd",
+    "codex"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "prompts": "^2.4.2"
+  }
+}

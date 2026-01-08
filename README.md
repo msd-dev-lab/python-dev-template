@@ -7,7 +7,13 @@
 ```
 あなた「〇〇作って」
     ↓
-【cc-sdd】仕様 → 設計 → タスク → 実装
+【cc-sdd】要件定義作成
+    ↓
+【codex-review-requirements】要件レビュー → ディープリサーチプロンプト生成
+    ↓
+【ディープリサーチ】ChatGPT等で調査 → 要件に反映
+    ↓
+【cc-sdd】設計 → タスク → 実装
     ↓
 【codex-review】Codexレビュー → 修正 → 再レビュー（OKまでループ）
     ↓
@@ -22,7 +28,7 @@
 プロ品質のコード完成
 ```
 
-**5重チェック。コードを読む必要なし。全部自動。**
+**6重チェック + ディープリサーチ。コードを読む必要なし。全部自動。**
 
 ---
 
@@ -49,7 +55,7 @@ npx cc-sdd@latest --claude --lang ja
 ### ステップ3: ワンコマンドセットアップ 🚀
 
 ```bash
-# 品質ルール配置 + Python環境 + プロジェクト名設定を自動実行
+# 品質ルール配置 + Python環境 + プロジェクト名設定 + Skills同期を自動実行
 npx setup-python-dev
 ```
 
@@ -60,6 +66,14 @@ npx setup-python-dev
 - ✅ Python 仮想環境を作成（venv）
 - ✅ 依存関係をインストール（pip install -e ".[dev]"）
 - ✅ pre-commit をセットアップ
+- ✅ Claude Code Skills を同期（codex-review, codex-review-requirements, gemini-research）
+
+**注意:** npmパッケージ未公開の場合は、以下のコマンドで実行：
+```bash
+cd .setup-tool
+npm install
+node setup.js
+```
 
 ### ステップ4: GitHubにアップ
 
@@ -135,11 +149,21 @@ my-project/
 
 ## 開発の流れ
 
-### 1. 機能を作る（cc-sdd）
+### 1. 機能を作る（cc-sdd + 要件レビュー）
 
 ```bash
-# 仕様から実装まで
+# ステップ1: 要件定義を作成
 /kiro:spec-requirements "ユーザー認証機能"
+
+# ステップ2: 要件をCodexレビュー（ok: true になるまで自動ループ）
+/codex-review-requirements "ユーザー認証機能"
+# → ディープリサーチプロンプトが自動生成される
+
+# ステップ3: ChatGPT等でディープリサーチを実行
+# → 技術調査、市場調査、ベストプラクティス、リスク分析
+# → 調査結果を requirements.md に反映
+
+# ステップ4: 設計 → タスク → 実装
 /kiro:spec-design "ユーザー認証機能"
 /kiro:spec-tasks "ユーザー認証機能"
 /kiro:spec-impl "ユーザー認証機能"
@@ -176,15 +200,47 @@ gh pr create --title "ユーザー認証機能" --body "認証機能を追加"
 
 ---
 
-## 5重チェックの詳細
+## 6重チェックの詳細
 
 | 段階 | ツール | やること |
 |------|--------|----------|
+| 要件定義後 | codex-review-requirements | 要件の完全性・曖昧さ・実現可能性・EARS形式をレビュー → ディープリサーチプロンプト生成 |
 | 実装中 | cc-sdd | 仕様通りに実装されているかチェック |
 | コミット前 | codex-review | Codexがアーキテクチャ・セキュリティ・ロジックをレビュー |
 | コミット時 | pre-commit | コード整形、Lint、型チェック |
 | プッシュ後 | GitHub Actions | テスト実行（Python 3.10/3.11/3.12） |
 | PR作成後 | Claude Code Actions | AIコードレビュー |
+
+---
+
+## codex-review-requirements の仕組み
+
+```
+/codex-review-requirements {feature_name} 実行
+    ↓
+requirements.md を読み込み
+    ↓
+Codexがレビュー（7つの観点）
+  - 完全性: 必要な要件が網羅されているか
+  - 実現可能性: 技術的に実装可能か
+  - 曖昧さ: 解釈の余地がないか
+  - EARS形式: 受入条件が正しく記載されているか
+  - 優先度: Must/Should/Couldが適切か
+  - 依存関係: 前提条件・制約が明確か
+  - テスタビリティ: テスト可能な形式か
+    ↓
+問題あり？
+  ├─ YES → Claude Codeが修正 → 再レビュー（ループ）
+  └─ NO → ok: true → ディープリサーチプロンプト生成
+```
+
+**ディープリサーチプロンプトには以下が含まれる:**
+- 技術調査（実装方法の比較、推奨アプローチ）
+- 市場調査（競合分析、ユーザーニーズ）
+- ベストプラクティス（業界標準、セキュリティ）
+- リスク分析（技術的リスク、実装上の注意点）
+
+ChatGPT Deep Research、Perplexity Pro、Claude Projects等で実行 → requirements.md更新
 
 ---
 
@@ -247,6 +303,37 @@ QUALITY.md に昇格（ルール化）
 新プロジェクトは学習済みルールで開始
     ↓
 レビュー指摘が減る
+```
+
+---
+
+## setup-python-dev パッケージの公開（メンテナ向け）
+
+`.setup-tool/` ディレクトリには自動セットアップツールが含まれています。
+
+### npmに公開する手順
+
+```bash
+cd /Users/masudashinya/Desktop/project/python-dev-template/.setup-tool
+
+# 依存関係をインストール
+npm install
+
+# npmにログイン（初回のみ）
+npm login
+
+# パッケージを公開
+npm publish
+```
+
+公開後は `npx setup-python-dev` でどこからでも使えるようになります。
+
+### ローカルでテストする
+
+```bash
+cd .setup-tool
+npm install
+node setup.js
 ```
 
 ---

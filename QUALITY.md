@@ -438,6 +438,26 @@ PR作成時にAIレビュー:
 
 ## cc-sdd 開発中のルール（MUST）
 
+### 開発フロー
+
+```bash
+# 1. 要件定義作成
+/kiro:spec-requirements "機能名"
+
+# 2. 要件をCodexレビュー（ok: true になるまで自動ループ）
+/codex-review-requirements "機能名"
+# → ディープリサーチプロンプトが自動生成される
+
+# 3. ChatGPT等でディープリサーチを実行
+# → 技術調査、市場調査、ベストプラクティス、リスク分析
+# → 調査結果を .kiro/specs/{機能名}/requirements.md に反映
+
+# 4. 設計 → タスク → 実装
+/kiro:spec-design "機能名"
+/kiro:spec-tasks "機能名"
+/kiro:spec-impl "機能名"
+```
+
 ### 開発中：ローカルコミットのみ（pushしない）
 
 ```bash

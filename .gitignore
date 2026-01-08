@@ -90,3 +90,11 @@ temp/
 *.key
 secrets.json
 credentials.json
+
+# ==============================================================================
+# Node.js (setup-tool)
+# ==============================================================================
+node_modules/
+package-lock.json
+.setup-tool/node_modules/
+.setup-tool/package-lock.json
