@@ -112,34 +112,30 @@ async function updatePyprojectToml() {
 }
 
 function setupPythonEnvironment() {
-  log.step('🐍 Step 4: Python 環境のセットアップ');
+  log.step('🐍 Step 4: Python 環境のセットアップ (uv)');
 
   try {
     // venv が既に存在するかチェック
-    if (existsSync(join(process.cwd(), 'venv'))) {
-      log.info('venv は既に存在します（スキップ）');
+    if (existsSync(join(process.cwd(), '.venv'))) {
+      log.info('.venv は既に存在します（スキップ）');
     } else {
-      log.info('仮想環境を作成中...');
-      execSync('python3 -m venv venv', { stdio: 'inherit' });
+      log.info('仮想環境を作成中 (uv venv)...');
+      execSync('uv venv', { stdio: 'inherit' });
       log.success('仮想環境を作成しました');
     }
 
-    // pip install
-    log.info('依存関係をインストール中...');
-    const activateCmd = process.platform === 'win32'
-      ? 'venv\\Scripts\\activate && pip install -e ".[dev]"'
-      : 'source venv/bin/activate && pip install -e ".[dev]"';
-
-    execSync(activateCmd, { stdio: 'inherit', shell: '/bin/bash' });
+    // uv pip install (10-100倍高速)
+    log.info('依存関係をインストール中 (uv pip)...');
+    execSync('uv pip install -e ".[dev]"', { stdio: 'inherit' });
     log.success('依存関係をインストールしました');
 
     // pre-commit install
     log.info('pre-commit をセットアップ中...');
-    const precommitCmd = process.platform === 'win32'
-      ? 'venv\\Scripts\\activate && pre-commit install'
-      : 'source venv/bin/activate && pre-commit install';
+    const activateCmd = process.platform === 'win32'
+      ? '.venv\\Scripts\\activate && pre-commit install'
+      : 'source .venv/bin/activate && pre-commit install';
 
-    execSync(precommitCmd, { stdio: 'inherit', shell: '/bin/bash' });
+    execSync(activateCmd, { stdio: 'inherit', shell: '/bin/bash' });
     log.success('pre-commit をセットアップしました');
 
   } catch (error) {

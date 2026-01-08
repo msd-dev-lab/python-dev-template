@@ -7,7 +7,7 @@
 # 使い方:
 #   1. name を変更
 #   2. dependencies を追加
-#   3. pip install -e ".[dev]"
+#   3. uv pip install -e ".[dev]"  # または: uv sync
 # ==============================================================================
 
 [build-system]

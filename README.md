@@ -63,8 +63,8 @@ npx setup-python-dev
 - ✅ `.kiro/steering/` ディレクトリを作成
 - ✅ QUALITY.md と REVIEW_LOG.md を `.kiro/steering/` に配置
 - ✅ pyproject.toml のプロジェクト名を対話的に設定
-- ✅ Python 仮想環境を作成（venv）
-- ✅ 依存関係をインストール（pip install -e ".[dev]"）
+- ✅ Python 仮想環境を作成（**uv venv** - 超高速）
+- ✅ 依存関係をインストール（**uv pip** - 10-100倍高速）
 - ✅ pre-commit をセットアップ
 - ✅ Claude Code Skills を同期（codex-review, codex-review-requirements, gemini-research）
 
