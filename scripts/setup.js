@@ -146,19 +146,21 @@ function syncSkills() {
   log.step('🎯 Step 5: Claude Code Skills の同期');
 
   const skillsSource = join(projectRoot, 'skills');
-  const skillsTarget = join(process.env.HOME, '.claude', 'skills');
+  const skillsTargetGlobal = join(process.env.HOME, '.claude', 'skills');
+  const skillsTargetLocal = join(process.cwd(), '.claude', 'skills');
 
   if (!existsSync(skillsSource)) {
     log.warning('skills/ ディレクトリが見つかりません');
     return;
   }
 
-  const skillNames = ['codex-review', 'codex-review-requirements', 'gemini-research'];
+  const globalSkills = ['codex-review', 'codex-review-requirements', 'gemini-research'];
+  const localSkills = ['agent-memory'];
   let syncedCount = 0;
 
-  for (const skillName of skillNames) {
+  for (const skillName of globalSkills) {
     const sourcePath = join(skillsSource, skillName, 'skill.md');
-    const targetDir = join(skillsTarget, skillName);
+    const targetDir = join(skillsTargetGlobal, skillName);
     const targetPath = join(targetDir, 'skill.md');
 
     if (!existsSync(sourcePath)) {
@@ -168,12 +170,39 @@ function syncSkills() {
 
     mkdirSync(targetDir, { recursive: true });
     copyFileSync(sourcePath, targetPath);
-    log.success(`${skillName} を同期しました`);
+    log.success(`${skillName} を同期しました（グローバル）`);
+    syncedCount++;
+  }
+
+  for (const skillName of localSkills) {
+    const sourceDir = join(skillsSource, skillName);
+    const targetDir = join(skillsTargetLocal, skillName);
+
+    if (!existsSync(sourceDir)) {
+      log.warning(`${skillName}/ ディレクトリが見つかりません`);
+      continue;
+    }
+
+    mkdirSync(targetDir, { recursive: true });
+
+    const filesToCopy = ['skill.md', '.gitignore'];
+    for (const file of filesToCopy) {
+      const sourceFile = join(sourceDir, file);
+      const targetFile = join(targetDir, file);
+      if (existsSync(sourceFile)) {
+        copyFileSync(sourceFile, targetFile);
+      }
+    }
+
+    const memoriesDir = join(targetDir, 'memories');
+    mkdirSync(memoriesDir, { recursive: true });
+
+    log.success(`${skillName} を同期しました（プロジェクトローカル）`);
     syncedCount++;
   }
 
   if (syncedCount > 0) {
-    log.success(`${syncedCount} 個のスキルを ~/.claude/skills/ に同期しました`);
+    log.success(`${syncedCount} 個のスキルを同期しました`);
   }
 }
 
