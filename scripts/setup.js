@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import * as readline from 'readline';
@@ -10,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
-// Color codes
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -35,13 +34,25 @@ function question(query) {
     output: process.stdout,
   });
 
-  return new Promise(resolve => rl.question(query, ans => {
-    rl.close();
-    resolve(ans);
-  }));
+  return new Promise((resolve) => {
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
 }
 
-async function checkCCSDD() {
+function copyFileIfExists(sourcePath, destPath, label) {
+  if (!existsSync(sourcePath)) {
+    log.warning(`${label} が見つかりません`);
+    return false;
+  }
+  copyFileSync(sourcePath, destPath);
+  log.success(`${label} → ${destPath}`);
+  return true;
+}
+
+function checkCCSDD() {
   log.step('📋 Step 1: cc-sdd の確認');
 
   const kiroDir = join(process.cwd(), '.kiro');
@@ -61,32 +72,23 @@ function setupQualityRules() {
 
   const steeringDir = join(process.cwd(), '.kiro', 'steering');
 
-  // .kiro/steering/ ディレクトリを作成（存在しない場合）
   if (!existsSync(steeringDir)) {
     mkdirSync(steeringDir, { recursive: true });
     log.info('.kiro/steering/ ディレクトリを作成しました');
   }
 
-  // QUALITY.md をコピー
-  const qualitySource = join(projectRoot, 'QUALITY.md');
-  const qualityDest = join(steeringDir, 'quality.md');
+  const filesToCopy = [
+    { source: 'QUALITY.md', dest: 'quality.md' },
+    { source: 'REVIEW_LOG.md', dest: 'review-log.md' },
+    { source: 'DEVELOPMENT_GUIDE.md', dest: 'development-guide.md' },
+  ];
 
-  if (existsSync(qualitySource)) {
-    copyFileSync(qualitySource, qualityDest);
-    log.success('QUALITY.md → .kiro/steering/quality.md');
-  } else {
-    log.warning('QUALITY.md が見つかりません');
-  }
-
-  // REVIEW_LOG.md をコピー
-  const reviewLogSource = join(projectRoot, 'REVIEW_LOG.md');
-  const reviewLogDest = join(steeringDir, 'review-log.md');
-
-  if (existsSync(reviewLogSource)) {
-    copyFileSync(reviewLogSource, reviewLogDest);
-    log.success('REVIEW_LOG.md → .kiro/steering/review-log.md');
-  } else {
-    log.warning('REVIEW_LOG.md が見つかりません');
+  for (const { source, dest } of filesToCopy) {
+    copyFileIfExists(
+      join(projectRoot, source),
+      join(steeringDir, dest),
+      source
+    );
   }
 }
 
@@ -100,13 +102,13 @@ async function updatePyprojectToml() {
     return;
   }
 
-  const currentDir = process.cwd().split('/').pop();
-  const projectName = await question(`プロジェクト名を入力 (デフォルト: ${currentDir}): `);
-  const finalName = projectName.trim() || currentDir;
+  const currentDir = basename(process.cwd());
+  const input = await question(`プロジェクト名を入力 (デフォルト: ${currentDir}): `);
+  const finalName = input.trim() || currentDir;
 
-  let content = readFileSync(pyprojectPath, 'utf-8');
-  content = content.replace(/name = ".*"/, `name = "${finalName}"`);
-  writeFileSync(pyprojectPath, content);
+  const content = readFileSync(pyprojectPath, 'utf-8');
+  const updatedContent = content.replace(/name = ".*"/, `name = "${finalName}"`);
+  writeFileSync(pyprojectPath, updatedContent);
 
   log.success(`プロジェクト名を "${finalName}" に設定しました`);
 }
@@ -115,7 +117,6 @@ function setupPythonEnvironment() {
   log.step('🐍 Step 4: Python 環境のセットアップ (uv)');
 
   try {
-    // venv が既に存在するかチェック
     if (existsSync(join(process.cwd(), '.venv'))) {
       log.info('.venv は既に存在します（スキップ）');
     } else {
@@ -124,20 +125,16 @@ function setupPythonEnvironment() {
       log.success('仮想環境を作成しました');
     }
 
-    // uv pip install (10-100倍高速)
     log.info('依存関係をインストール中 (uv pip)...');
     execSync('uv pip install -e ".[dev]"', { stdio: 'inherit' });
     log.success('依存関係をインストールしました');
 
-    // pre-commit install
     log.info('pre-commit をセットアップ中...');
     const activateCmd = process.platform === 'win32'
       ? '.venv\\Scripts\\activate && pre-commit install'
       : 'source .venv/bin/activate && pre-commit install';
-
     execSync(activateCmd, { stdio: 'inherit', shell: '/bin/bash' });
     log.success('pre-commit をセットアップしました');
-
   } catch (error) {
     log.error('Python 環境のセットアップに失敗しました');
     console.error(error.message);
@@ -156,22 +153,23 @@ function syncSkills() {
     return;
   }
 
-  const skills = ['codex-review', 'codex-review-requirements', 'gemini-research'];
+  const skillNames = ['codex-review', 'codex-review-requirements', 'gemini-research'];
   let syncedCount = 0;
 
-  for (const skill of skills) {
-    const sourcePath = join(skillsSource, skill, 'skill.md');
-    const targetDir = join(skillsTarget, skill);
+  for (const skillName of skillNames) {
+    const sourcePath = join(skillsSource, skillName, 'skill.md');
+    const targetDir = join(skillsTarget, skillName);
     const targetPath = join(targetDir, 'skill.md');
 
-    if (existsSync(sourcePath)) {
-      mkdirSync(targetDir, { recursive: true });
-      copyFileSync(sourcePath, targetPath);
-      log.success(`${skill} を同期しました`);
-      syncedCount++;
-    } else {
-      log.warning(`${skill}/skill.md が見つかりません`);
+    if (!existsSync(sourcePath)) {
+      log.warning(`${skillName}/skill.md が見つかりません`);
+      continue;
     }
+
+    mkdirSync(targetDir, { recursive: true });
+    copyFileSync(sourcePath, targetPath);
+    log.success(`${skillName} を同期しました`);
+    syncedCount++;
   }
 
   if (syncedCount > 0) {
@@ -199,17 +197,20 @@ function showNextSteps() {
   console.log(`${colors.cyan}4. Claude Code Actions をセットアップ${colors.reset}`);
   console.log('   claude /install-github-app\n');
 
+  console.log(`${colors.cyan}5. プロジェクトコンテキストを作成${colors.reset}`);
+  console.log('   /kiro:steering\n');
+
   console.log(`${colors.bright}開発を開始:${colors.reset}`);
   console.log('   source venv/bin/activate  # 仮想環境を有効化');
-  console.log('   /kiro:steering            # プロジェクトコンテキストを作成');
-  console.log('   /kiro:spec-init <description>  # 機能開発を開始\n');
+  console.log('   /kiro:spec-init <description>  # 機能開発を開始');
+  console.log('   /code-simplifier <file>   # コード簡潔化（PRレビュー前推奨）\n');
 }
 
 async function main() {
   console.log(`\n${colors.bright}${colors.green}🚀 Python Dev Template Setup${colors.reset}\n`);
 
   try {
-    await checkCCSDD();
+    checkCCSDD();
     setupQualityRules();
     await updatePyprojectToml();
     setupPythonEnvironment();
