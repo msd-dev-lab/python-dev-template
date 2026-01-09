@@ -45,17 +45,19 @@ cd my-project
 rsync -av --exclude='.git' ~/Desktop/project/python-dev-template/ .
 ```
 
-### ステップ2: cc-sdd をセットアップ
+### ステップ2: セットアップ方法を選択 🚀
+
+**2つのセットアップ方法があります：**
+
+#### 方法A: フル版（cc-sdd + 全機能）
+
+仕様駆動開発（cc-sdd）を使う場合はこちら。要件定義から実装までの完全なワークフローが使えます。
 
 ```bash
-# 仕様駆動開発ツールをインストール
+# 1. cc-sddをインストール
 npx cc-sdd@latest --claude --lang ja
-```
 
-### ステップ3: ワンコマンドセットアップ 🚀
-
-```bash
-# 品質ルール配置 + Python環境 + プロジェクト名設定 + Skills同期を自動実行
+# 2. フルセットアップ実行
 npx setup-python-dev
 ```
 
@@ -66,16 +68,39 @@ npx setup-python-dev
 - ✅ Python 仮想環境を作成（**uv venv** - 超高速）
 - ✅ 依存関係をインストール（**uv pip** - 10-100倍高速）
 - ✅ pre-commit をセットアップ
-- ✅ Claude Code Skills を同期（codex-review, codex-review-requirements, gemini-research）
+- ✅ Claude Code Skills を同期（codex-review, codex-review-requirements, gemini-research, agent-memory）
+
+#### 方法B: Lite版（cc-sdd無し）
+
+cc-sddを使わない場合はこちら。コード品質ツールと作業記憶機能のみ使えます。
+
+```bash
+# ライトセットアップ実行（cc-sdd不要）
+npx setup-python-dev-lite
+```
+
+このコマンドが自動的に：
+- ✅ pyproject.toml のプロジェクト名を対話的に設定
+- ✅ Python 仮想環境を作成（**uv venv** - 超高速）
+- ✅ 依存関係をインストール（**uv pip** - 10-100倍高速）
+- ✅ pre-commit をセットアップ
+- ✅ Claude Code Skills を同期（codex-review, gemini-research, agent-memory）
+
+**どちらを選ぶべき？**
+- **フル版**: 要件定義から実装まで全自動化したい → 大規模開発向け
+- **Lite版**: 既存コードの品質向上とレビューだけで十分 → 小規模開発・個人開発向け
 
 **注意:** npmパッケージ未公開の場合は、以下のコマンドで実行：
 ```bash
 cd .setup-tool
 npm install
+# フル版
 node setup.js
+# Lite版
+node ../scripts/setup-lite.js
 ```
 
-### ステップ4: GitHubにアップ
+### ステップ3: GitHubにアップ
 
 ```bash
 # Git初期化
@@ -91,19 +116,19 @@ git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
 git push -u origin main
 ```
 
-### ステップ5: Claude Code Actions セットアップ
+### ステップ4: Claude Code Actions セットアップ
 
 ```bash
 # Claude GitHub App とシークレットを自動設定
 claude /install-github-app
 ```
 
-→ リポジトリ名を聞かれる → **ステップ4で作成したリポジトリ名**（`msd-dev-lab/リポジトリ名`）を入力
+→ リポジトリ名を聞かれる → **ステップ3で作成したリポジトリ名**（`msd-dev-lab/リポジトリ名`）を入力
 → ブラウザで認証
 → ワークフローファイル更新の確認 → 「1. Update workflow file」を選択
 → 完了（PRが自動作成されるのでマージ）
 
-### ステップ6: プロジェクトメモリを作成（初回のみ）
+### ステップ5: プロジェクトメモリを作成（**フル版のみ**）
 
 ```bash
 # Claude Code で以下を実行
@@ -114,6 +139,8 @@ claude /install-github-app
 - ✅ 既存の `quality.md` と `review-log.md` を参照しながら
 - ✅ `product.md`, `tech.md`, `structure.md` を生成
 - ✅ プロジェクト全体のコンテキストを確立
+
+**Lite版の場合**: このステップはスキップしてください（kiro:steeringはcc-sdd必須）
 
 **これでセットアップ完了！開発を開始できます。**
 

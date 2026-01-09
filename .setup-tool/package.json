@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Python development template setup automation",
   "bin": {
-    "setup-python-dev": "./setup.js"
+    "setup-python-dev": "./setup.js",
+    "setup-python-dev-lite": "../scripts/setup-lite.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
