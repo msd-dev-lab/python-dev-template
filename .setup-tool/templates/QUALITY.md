@@ -1,0 +1,508 @@
+# Code Quality Rules
+
+コード品質を維持するためのルール集です。
+Claude Code / Cursor / Copilot などのAIアシスタントが参照します。
+
+## 使い方
+
+### 単独使用（cc-sddなし）
+このファイルを `CLAUDE.md` にリネームしてプロジェクトルートに配置:
+```bash
+cp QUALITY.md CLAUDE.md
+```
+
+### cc-sddと併用
+`.kiro/steering/` にコピーして統合:
+```bash
+cp QUALITY.md .kiro/steering/quality.md
+cp REVIEW_LOG.md .kiro/steering/review-log.md
+```
+
+**配置場所について:**
+- `.kiro/steering/` = AI指導ルール（プロジェクトメモリとして全コマンドから参照）
+- cc-sddの全コマンド（/kiro:spec-requirements、/kiro:spec-impl等）が自動的に読み込む
+- セッションクリアしても永続的に参照される
+
+**REVIEW_LOG.md の役割:**
+- 過去のレビューで見つかった頻出パターンを確認
+- 実装・検証時に同じミスを繰り返さないための参考資料
+- 3回以上出現したパターンは QUALITY.md に昇格される
+
+---
+
+## 開発コマンド
+
+```bash
+# テスト実行
+pytest                              # 全テスト
+pytest -m "not slow"                # 遅いテスト除外
+pytest --cov                        # カバレッジ付き
+pytest --cov --cov-report=html      # HTMLレポート生成
+
+# 静的解析
+ruff check src/ tests/              # Lint
+ruff check src/ tests/ --fix        # 自動修正
+ruff format src/ tests/             # フォーマット
+mypy src/                           # 型チェック
+
+# pre-commit
+pre-commit install                  # hooks インストール
+pre-commit run --all-files          # 全ファイルチェック
+```
+
+---
+
+## 仕様調査ルール（MUST）
+
+外部API・ライブラリを使う場合、**実装前に必ず最新仕様を確認**する。
+
+### Context7 MCPを使用
+
+```
+# 最新ドキュメントを取得
+mcp__context7__resolve-library-id → mcp__context7__query-docs
+```
+
+### 確認必須の項目
+
+- APIのバージョン（最新を使う）
+- モデル名（Claude: claude-sonnet-4-20250514 等）
+- 認証方式
+- エンドポイントURL
+- 必須パラメータ
+
+### なぜ必要か
+
+Claudeの学習データは古い場合がある：
+- 存在しないモデル名を使う（sonnet-4 → claude-sonnet-4-20250514）
+- 廃止されたAPIを使う
+- 古いライブラリバージョンを参照する
+
+**「たぶんこう」で実装しない。必ず最新を調べる。**
+
+---
+
+## 品質スコアリング基準
+
+コードレビュー時の評価基準。**80点以上で合格**。
+
+| カテゴリ | 配点 | チェック内容 |
+|---------|------|-------------|
+| 正確性 | 30点 | ロジック正確、エッジケース処理、エラーハンドリング、null チェック |
+| セキュリティ | 25点 | 入力検証、SQLi対策、XSS対策、シークレット管理（OWASP Top 10準拠） |
+| パフォーマンス | 20点 | N+1クエリ回避、適切なインデックス、アルゴリズム効率、メモリ管理 |
+| 保守性 | 15点 | 明確な命名、単一責任、DRY原則、型安全 |
+| テスト | 10点 | カバレッジ、テスト品質 |
+
+---
+
+## コミットメッセージ規約
+
+Conventional Commits形式を使用。
+
+### フォーマット
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Type一覧
+
+| Type | 用途 |
+|------|------|
+| feat | 新機能 |
+| fix | バグ修正 |
+| docs | ドキュメント更新 |
+| style | コード整形（動作に影響なし） |
+| refactor | リファクタリング |
+| perf | パフォーマンス改善 |
+| test | テスト追加・修正 |
+| chore | メンテナンス |
+
+### ルール
+
+- subject は**命令形**（add, fix, update）
+- subject は**50文字以内**
+- subject の末尾に**ピリオドなし**
+- コロン後は**小文字**で開始
+
+### 例
+
+```bash
+# Good
+feat(auth): add OAuth login
+fix(api): handle null response from server
+docs(readme): update installation steps
+
+# Bad
+feat: Add User Authentication  # 大文字NG
+fix: fixed bug.  # 過去形NG、ピリオドNG
+```
+
+---
+
+## ドキュメント基準
+
+### 関数ドキュメント（必須）
+
+```python
+def process_user(user_id: int, options: dict) -> User:
+    """ユーザー情報を処理して返す.
+
+    Args:
+        user_id: ユーザーID
+        options: 処理オプション
+
+    Returns:
+        処理済みのUserオブジェクト
+
+    Raises:
+        ValueError: user_idが無効な場合
+
+    Example:
+        >>> user = process_user(123, {"validate": True})
+        >>> print(user.name)
+    """
+```
+
+### README必須項目
+
+- プロジェクト説明
+- インストール手順
+- クイックスタート（使用例）
+- 設定オプション
+- ライセンス
+
+---
+
+## 品質チェックリスト（MUST）
+
+### コード変更時のチェックリスト
+
+1. **Lint**: `ruff check src/ tests/` がパスすること
+2. **Format**: `ruff format --check src/ tests/` がパスすること
+3. **Type**: `mypy src/` がパスすること
+4. **Test**: `pytest` がパスすること
+
+**全てパスしてからコミット！**
+
+### 新機能追加時
+
+```
+1. テストを先に書く（TDD）
+   └─ tests/test_*.py に失敗するテストを追加
+
+2. 実装する
+   └─ テストがパスするまでコードを書く
+
+3. リファクタリング
+   └─ テストがパスしたままコードを整理
+
+4. 品質チェック
+   └─ ruff, mypy, pytest 全てパス
+```
+
+### バグ修正時
+
+```
+1. バグを再現するテストを書く
+   └─ このテストは失敗するはず
+
+2. テストが失敗することを確認
+
+3. バグを修正
+
+4. テストがパスすることを確認
+   └─ 他のテストも壊れていないこと
+```
+
+---
+
+## コーディング規約
+
+### 型ヒント
+
+```python
+# Good: 型ヒントあり
+def process(data: dict[str, Any]) -> list[str]:
+    ...
+
+# Bad: 型ヒントなし
+def process(data):
+    ...
+```
+
+### docstring
+
+```python
+def calculate(value: int) -> int:
+    """値を計算して返す.
+
+    Args:
+        value: 入力値
+
+    Returns:
+        計算結果
+
+    Raises:
+        ValueError: 値が負の場合
+    """
+```
+
+### 例外処理
+
+```python
+# Good: 具体的な例外
+try:
+    result = api_call()
+except requests.RequestException as e:
+    logger.error(f"API error: {e}")
+    raise
+
+# Bad: 広すぎる例外
+try:
+    result = api_call()
+except Exception:
+    pass  # 何が起きたかわからない
+```
+
+### インポート順序（ruff が自動整列）
+
+```python
+# 1. 標準ライブラリ
+import os
+import sys
+from pathlib import Path
+
+# 2. サードパーティ
+import requests
+from dotenv import load_dotenv
+
+# 3. ローカル
+from src.config import Settings
+from src.utils import helper
+```
+
+---
+
+## 保守性ルール（MUST）
+
+長期的に読みやすいコードを維持するためのルール。
+
+### 命名
+
+- 変数名・関数名・クラス名は**英語で意味がわかるように**
+- 略語は避ける（`usr` → `user`、`btn` → `button`）
+- 一貫性を保つ（同じ概念には同じ名前を使う）
+
+### ファイルサイズ
+
+- 1ファイル**300行以内**を目安
+- 超えたらモジュール分割を検討
+
+### コメント
+
+- コメントは**日本語**で書く
+- 「何をしているか」ではなく「**なぜそうしているか**」を書く
+
+```python
+# Good: なぜを説明
+# APIの仕様でリトライは3回までと決まっているため
+MAX_RETRY = 3
+
+# Bad: 何をしているかだけ
+# リトライ回数を3に設定
+MAX_RETRY = 3
+```
+
+### 設計判断の記録
+
+- 重要な設計判断は `.kiro/specs/` に理由を残す
+- 「なぜこの方式を選んだか」を書く
+
+---
+
+## 禁止事項
+
+### 絶対禁止
+
+- [ ] テストなしの機能追加
+- [ ] `# type: ignore` の乱用（正当な理由がある場合のみ）
+- [ ] `# noqa` の乱用
+- [ ] `print()` デバッグの残存（`logger` を使う）
+- [ ] ハードコードされたシークレット
+- [ ] `except Exception: pass`（例外の握りつぶし）
+
+### 避けるべき
+
+- [ ] グローバル変数の使用
+- [ ] 1関数200行超え
+- [ ] 循環インポート
+- [ ] マジックナンバー（定数化する）
+
+---
+
+## テスト規約
+
+### 命名規則
+
+```python
+# パターン: test_<機能>_<条件>_<期待結果>
+def test_user_login_with_valid_credentials_returns_token():
+    ...
+
+def test_user_login_with_invalid_password_raises_error():
+    ...
+```
+
+### 構造（AAA パターン）
+
+```python
+def test_add_positive_numbers():
+    # Arrange（準備）
+    a, b = 2, 3
+
+    # Act（実行）
+    result = add(a, b)
+
+    # Assert（検証）
+    assert result == 5
+```
+
+### カバレッジ目標
+
+| フェーズ | 目標 |
+|---------|------|
+| 初期 | 50% |
+| 成熟 | 80% |
+| 重要機能 | 90%+ |
+
+---
+
+## セキュリティ規約
+
+### 入力検証
+
+```python
+# 外部入力は必ずバリデーション
+def process_user_input(data: str) -> str:
+    if not data or len(data) > 1000:
+        raise ValueError("Invalid input")
+    return sanitize(data)
+```
+
+### シークレット管理
+
+```python
+# Good: 環境変数から取得
+api_key = os.getenv("API_KEY")
+if not api_key:
+    raise ValueError("API_KEY not set")
+
+# Bad: ハードコード
+api_key = "sk-1234567890"  # 絶対禁止！
+```
+
+### Bandit ルール
+
+Ruff の `S` ルール（flake8-bandit）でセキュリティチェック:
+- S101: assert使用（テスト以外では警告）
+- S105: ハードコードされたパスワード
+- S106: ハードコードされたパスワード引数
+- S107: ハードコードされた一時ディレクトリ
+
+---
+
+## CI/CD との連携
+
+### GitHub Actions
+
+Push/PR時に自動実行:
+1. `ruff check` - Lint
+2. `ruff format --check` - フォーマット確認
+3. `mypy` - 型チェック
+4. `pytest` - テスト
+
+### CodeRabbit（オプション）
+
+PR作成時にAIレビュー:
+1. コード品質チェック
+2. セキュリティ分析
+3. 改善提案
+
+---
+
+## cc-sdd 開発中のルール（MUST）
+
+### 開発フロー
+
+```bash
+# 1. 要件定義作成
+/kiro:spec-requirements "機能名"
+
+# 2. 要件をCodexレビュー（ok: true になるまで自動ループ）
+/codex-review-requirements "機能名"
+# → ディープリサーチプロンプトが自動生成される
+
+# 3. ChatGPT等でディープリサーチを実行
+# → 技術調査、市場調査、ベストプラクティス、リスク分析
+# → 調査結果を .kiro/specs/{機能名}/requirements.md に反映
+
+# 4. 設計 → タスク → 実装
+/kiro:spec-design "機能名"
+/kiro:spec-tasks "機能名"
+/kiro:spec-impl "機能名"
+```
+
+### 開発中：ローカルコミットのみ（pushしない）
+
+```bash
+# タスク1完了
+git add .
+git commit -m "タスク1: 概要"
+# ← pushしない！
+
+# タスク2完了
+git add .
+git commit -m "タスク2: 概要"
+# ← pushしない！
+```
+
+**pushするとCodeRabbitが来てマージされてしまう。全タスク完了までローカルにとどめる。**
+
+### 全タスク完了後：リポジトリ作成 → push → PR
+
+```bash
+# 1. Codexレビュー（OKまでループ）
+/codex-review
+
+# 2. リポジトリがなければ作成
+gh repo create msd-dev-lab/リポジトリ名 --public
+git remote add origin https://github.com/msd-dev-lab/リポジトリ名.git
+
+# 3. push
+git push -u origin main
+
+# 4. PR作成
+gh pr create --title "機能名" --body "概要"
+
+# 5. マージ後にローカル更新
+git pull
+```
+
+**リポジトリ名は開発内容に合わせて決める。**
+
+**このフローを省略しないこと。**
+
+---
+
+## 参考リンク
+
+- [Ruff Documentation](https://docs.astral.sh/ruff/)
+- [Mypy Documentation](https://mypy.readthedocs.io/)
+- [Pytest Documentation](https://docs.pytest.org/)
+- [Python Type Hints Cheat Sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)

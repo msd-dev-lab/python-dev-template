@@ -3,7 +3,6 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const prompts = require('prompts');
 
 const colors = {
   reset: '\x1b[0m',
@@ -25,143 +24,199 @@ function exec(command, silent = false) {
     });
   } catch (error) {
     if (!silent) {
-      log(`Error executing: ${command}`, 'red');
-      log(error.message, 'red');
+      log(`✗ ${error.message}`, 'red');
     }
     throw error;
   }
 }
 
+// テンプレートディレクトリのパス（スクリプトと同じ階層）
+const TEMPLATE_DIR = path.join(__dirname, 'templates');
+// ユーザーの作業ディレクトリ
+const TARGET_DIR = process.cwd();
+
 async function setup() {
   log('\n🚀 Python Development Template Setup\n', 'blue');
 
-  // 1. プロジェクト名を取得
-  const response = await prompts({
-    type: 'text',
-    name: 'projectName',
-    message: 'プロジェクト名を入力してください (例: my-awesome-project):',
-    initial: path.basename(process.cwd()),
-    validate: value => value.length > 0 || 'プロジェクト名を入力してください'
-  });
+  // プロジェクト名をディレクトリ名から取得
+  const projectName = path.basename(TARGET_DIR);
+  log(`📁 プロジェクト: ${projectName}\n`, 'green');
 
-  if (!response.projectName) {
-    log('\n❌ セットアップをキャンセルしました', 'red');
-    process.exit(0);
+  // Step 1: cc-sdd の確認
+  log('📋 Step 1: cc-sdd の確認', 'yellow');
+  try {
+    exec('which cc-sdd', true);
+    log('✓ cc-sdd インストール済み', 'green');
+  } catch {
+    log('ℹ cc-sdd が見つかりません（オプション）', 'blue');
   }
 
-  const projectName = response.projectName;
-  log(`\n✅ プロジェクト名: ${projectName}\n`, 'green');
+  // Step 2: 品質ルールを .kiro/steering/ に配置
+  log('\n📁 Step 2: 品質ルールを .kiro/steering/ に配置', 'yellow');
+  const steeringDir = path.join(TARGET_DIR, '.kiro', 'steering');
 
-  // 2. .kiro/steering/ ディレクトリ作成
-  log('📁 .kiro/steering/ ディレクトリを作成中...', 'yellow');
-  const steeringDir = path.join(process.cwd(), '.kiro', 'steering');
   if (!fs.existsSync(steeringDir)) {
     fs.mkdirSync(steeringDir, { recursive: true });
-    log('✅ .kiro/steering/ を作成しました', 'green');
-  } else {
-    log('ℹ️  .kiro/steering/ は既に存在します', 'blue');
+    log('ℹ .kiro/steering/ ディレクトリを作成しました', 'blue');
   }
 
-  // 3. QUALITY.md と REVIEW_LOG.md をコピー
-  log('\n📄 品質ルールファイルをコピー中...', 'yellow');
-  const qualitySource = path.join(process.cwd(), 'QUALITY.md');
-  const reviewLogSource = path.join(process.cwd(), 'REVIEW_LOG.md');
-  const qualityDest = path.join(steeringDir, 'quality.md');
-  const reviewLogDest = path.join(steeringDir, 'review-log.md');
+  const filesToCopy = [
+    { src: 'QUALITY.md', dest: 'quality.md' },
+    { src: 'REVIEW_LOG.md', dest: 'review-log.md' },
+    { src: 'DEVELOPMENT_GUIDE.md', dest: 'development-guide.md' },
+  ];
 
-  if (fs.existsSync(qualitySource)) {
-    fs.copyFileSync(qualitySource, qualityDest);
-    log('✅ QUALITY.md → .kiro/steering/quality.md', 'green');
-  } else {
-    log('⚠️  QUALITY.md が見つかりません', 'red');
+  for (const file of filesToCopy) {
+    const srcPath = path.join(TEMPLATE_DIR, file.src);
+    const destPath = path.join(steeringDir, file.dest);
+
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      log(`✓ ${file.src} → ${path.relative(TARGET_DIR, destPath)}`, 'green');
+    } else {
+      log(`⚠ ${file.src} が見つかりません`, 'red');
+    }
   }
 
-  if (fs.existsSync(reviewLogSource)) {
-    fs.copyFileSync(reviewLogSource, reviewLogDest);
-    log('✅ REVIEW_LOG.md → .kiro/steering/review-log.md', 'green');
+  // Step 3: pyproject.toml を作成
+  log('\n📝 Step 3: pyproject.toml のプロジェクト名を設定', 'yellow');
+  const pyprojectSrc = path.join(TEMPLATE_DIR, 'pyproject.toml');
+  const pyprojectDest = path.join(TARGET_DIR, 'pyproject.toml');
+
+  if (!fs.existsSync(pyprojectDest)) {
+    if (fs.existsSync(pyprojectSrc)) {
+      let content = fs.readFileSync(pyprojectSrc, 'utf8');
+      content = content.replace(/name = "your-project-name"/, `name = "${projectName}"`);
+      content = content.replace(/name = ".*?"/, `name = "${projectName}"`);
+      fs.writeFileSync(pyprojectDest, content);
+      log(`✓ pyproject.toml を作成しました (name: ${projectName})`, 'green');
+    } else {
+      log('⚠ pyproject.toml テンプレートが見つかりません', 'red');
+    }
   } else {
-    log('⚠️  REVIEW_LOG.md が見つかりません', 'red');
+    // 既存のpyproject.tomlがある場合は名前だけ更新
+    let content = fs.readFileSync(pyprojectDest, 'utf8');
+    if (content.includes('your-project-name')) {
+      content = content.replace(/name = "your-project-name"/, `name = "${projectName}"`);
+      fs.writeFileSync(pyprojectDest, content);
+      log(`✓ pyproject.toml のプロジェクト名を "${projectName}" に更新しました`, 'green');
+    } else {
+      log('ℹ pyproject.toml は既に設定済みです', 'blue');
+    }
   }
 
-  // 4. pyproject.toml のプロジェクト名を更新
-  log('\n📝 pyproject.toml のプロジェクト名を更新中...', 'yellow');
-  const pyprojectPath = path.join(process.cwd(), 'pyproject.toml');
+  // Step 3.5: README.md を作成
+  const readmeSrc = path.join(TEMPLATE_DIR, 'README.md');
+  const readmeDest = path.join(TARGET_DIR, 'README.md');
 
-  if (fs.existsSync(pyprojectPath)) {
-    let pyprojectContent = fs.readFileSync(pyprojectPath, 'utf8');
-    pyprojectContent = pyprojectContent.replace(
-      /name = ".*?"/,
-      `name = "${projectName}"`
-    );
-    fs.writeFileSync(pyprojectPath, pyprojectContent);
-    log(`✅ プロジェクト名を "${projectName}" に設定しました`, 'green');
-  } else {
-    log('⚠️  pyproject.toml が見つかりません', 'red');
+  if (!fs.existsSync(readmeDest)) {
+    if (fs.existsSync(readmeSrc)) {
+      let content = fs.readFileSync(readmeSrc, 'utf8');
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      fs.writeFileSync(readmeDest, content);
+      log('✓ README.md を作成しました', 'green');
+    }
   }
 
-  // 5. Python 仮想環境の作成
-  log('\n🐍 Python 仮想環境を作成中...', 'yellow');
-  const venvPath = path.join(process.cwd(), 'venv');
+  // Step 3.6: src/ と tests/ ディレクトリを作成
+  const srcDir = path.join(TARGET_DIR, 'src');
+  const testsDir = path.join(TARGET_DIR, 'tests');
+
+  if (!fs.existsSync(srcDir)) {
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, '__init__.py'), '');
+    log('✓ src/ ディレクトリを作成しました', 'green');
+  }
+
+  if (!fs.existsSync(testsDir)) {
+    fs.mkdirSync(testsDir, { recursive: true });
+    fs.writeFileSync(path.join(testsDir, '__init__.py'), '');
+    log('✓ tests/ ディレクトリを作成しました', 'green');
+  }
+
+  // Step 4: Python 環境のセットアップ (uv)
+  log('\n🐍 Step 4: Python 環境のセットアップ (uv)', 'yellow');
+
+  // uv がインストールされているか確認
+  let useUv = false;
+  try {
+    exec('which uv', true);
+    useUv = true;
+  } catch {
+    log('ℹ uv が見つかりません。python3 -m venv を使用します', 'blue');
+  }
+
+  const venvPath = path.join(TARGET_DIR, '.venv');
 
   if (!fs.existsSync(venvPath)) {
     try {
-      exec('python3 -m venv venv');
-      log('✅ 仮想環境を作成しました', 'green');
+      if (useUv) {
+        log('ℹ 仮想環境を作成中 (uv venv)...', 'blue');
+        exec('uv venv');
+      } else {
+        log('ℹ 仮想環境を作成中 (python3 -m venv)...', 'blue');
+        exec('python3 -m venv .venv');
+      }
+      log('✓ 仮想環境を作成しました', 'green');
     } catch (error) {
-      log('⚠️  仮想環境の作成に失敗しました。後で手動で実行してください: python3 -m venv venv', 'yellow');
+      log('✗ 仮想環境の作成に失敗しました', 'red');
+      log(`  Command failed: ${error.message}`, 'red');
+      return;
     }
   } else {
-    log('ℹ️  仮想環境は既に存在します', 'blue');
+    log('ℹ 仮想環境は既に存在します', 'blue');
   }
 
-  // 6. 依存関係のインストール
-  log('\n📦 依存関係をインストール中...', 'yellow');
+  // 依存関係のインストール
   try {
-    const activateCommand = process.platform === 'win32'
-      ? 'venv\\Scripts\\activate.bat && pip install -e ".[dev]"'
-      : 'source venv/bin/activate && pip install -e ".[dev]"';
-
-    exec(`bash -c "${activateCommand}"`, true);
-    log('✅ 依存関係をインストールしました', 'green');
-  } catch (error) {
-    log('⚠️  依存関係のインストールに失敗しました。後で手動で実行してください:', 'yellow');
-    log('   source venv/bin/activate && pip install -e ".[dev]"', 'blue');
-  }
-
-  // 7. pre-commit のセットアップ
-  log('\n🔧 pre-commit をセットアップ中...', 'yellow');
-  try {
-    exec('bash -c "source venv/bin/activate && pre-commit install"', true);
-    log('✅ pre-commit をインストールしました', 'green');
-  } catch (error) {
-    log('⚠️  pre-commit のインストールに失敗しました。後で手動で実行してください:', 'yellow');
-    log('   source venv/bin/activate && pre-commit install', 'blue');
-  }
-
-  // 8. Skills を同期
-  log('\n🎯 Claude Code Skills を同期中...', 'yellow');
-  const skillsSyncScript = path.join(
-    process.env.HOME,
-    'Desktop',
-    'project',
-    'skills',
-    'sync-skills.sh'
-  );
-
-  if (fs.existsSync(skillsSyncScript)) {
-    try {
-      exec(`bash ${skillsSyncScript}`, true);
-      log('✅ Skills を同期しました', 'green');
-      log('   - codex-review', 'blue');
-      log('   - codex-review-requirements', 'blue');
-      log('   - gemini-research', 'blue');
-    } catch (error) {
-      log('⚠️  Skills の同期に失敗しました。後で手動で実行してください:', 'yellow');
-      log(`   bash ${skillsSyncScript}`, 'blue');
+    if (useUv) {
+      log('ℹ 依存関係をインストール中 (uv pip)...', 'blue');
+      exec('uv pip install -e ".[dev]"');
+    } else {
+      log('ℹ 依存関係をインストール中 (pip)...', 'blue');
+      exec('bash -c "source .venv/bin/activate && pip install -e .[dev]"');
     }
-  } else {
-    log('ℹ️  Skills 同期スクリプトが見つかりません', 'blue');
-    log(`   期待されるパス: ${skillsSyncScript}`, 'blue');
+    log('✓ 依存関係をインストールしました', 'green');
+  } catch (error) {
+    log('✗ Python 環境のセットアップに失敗しました', 'red');
+    log(`  Command failed: ${error.message}`, 'red');
+    return;
+  }
+
+  // Step 5: pre-commit のセットアップ
+  log('\n🔧 Step 5: pre-commit のセットアップ', 'yellow');
+  const precommitConfig = path.join(TARGET_DIR, '.pre-commit-config.yaml');
+
+  if (!fs.existsSync(precommitConfig)) {
+    // 基本的な pre-commit 設定を作成
+    const precommitContent = `repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: []
+        args: [--ignore-missing-imports]
+`;
+    fs.writeFileSync(precommitConfig, precommitContent);
+    log('✓ .pre-commit-config.yaml を作成しました', 'green');
+  }
+
+  try {
+    if (useUv) {
+      exec('bash -c "source .venv/bin/activate && pre-commit install"', true);
+    } else {
+      exec('bash -c "source .venv/bin/activate && pre-commit install"', true);
+    }
+    log('✓ pre-commit をインストールしました', 'green');
+  } catch {
+    log('ℹ pre-commit のインストールをスキップしました', 'blue');
   }
 
   // 完了メッセージ
@@ -170,17 +225,15 @@ async function setup() {
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'green');
 
   log('\n📋 次のステップ:', 'blue');
-  log('1. プロジェクトメモリを作成:', 'blue');
-  log('   /kiro:steering', 'yellow');
-  log('\n2. GitHubにアップロード:', 'blue');
-  log('   git init', 'yellow');
-  log('   git add .', 'yellow');
-  log('   git commit -m "Initial setup"', 'yellow');
-  log(`   gh repo create msd-dev-lab/${projectName} --public`, 'yellow');
-  log(`   git remote add origin https://github.com/msd-dev-lab/${projectName}.git`, 'yellow');
-  log('   git push -u origin main', 'yellow');
-  log('\n3. Claude Code Actions をセットアップ:', 'blue');
-  log('   claude /install-github-app', 'yellow');
+  log('1. 仮想環境をアクティベート:', 'blue');
+  log('   source .venv/bin/activate', 'yellow');
+  log('\n2. 開発を開始:', 'blue');
+  log('   # src/ にコードを追加', 'yellow');
+  log('   # tests/ にテストを追加', 'yellow');
+  log('\n3. 品質チェック:', 'blue');
+  log('   ruff check src tests', 'yellow');
+  log('   mypy src', 'yellow');
+  log('   pytest', 'yellow');
   log('');
 }
 
