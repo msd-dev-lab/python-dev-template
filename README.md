@@ -58,7 +58,7 @@ rsync -av --exclude='.git' ~/Desktop/project/python-dev-template/ .
 npx cc-sdd@latest --claude --lang ja
 
 # 2. フルセットアップ実行
-npx setup-python-dev
+npx github:msd-dev-lab/python-dev-template/.setup-tool
 ```
 
 このコマンドが自動的に：
@@ -76,7 +76,7 @@ cc-sddを使わない場合はこちら。コード品質ツールと作業記�
 
 ```bash
 # ライトセットアップ実行（cc-sdd不要）
-npx setup-python-dev-lite
+npx github:msd-dev-lab/python-dev-template/scripts setup-lite.js
 ```
 
 このコマンドが自動的に：
@@ -90,14 +90,13 @@ npx setup-python-dev-lite
 - **フル版**: 要件定義から実装まで全自動化したい → 大規模開発向け
 - **Lite版**: 既存コードの品質向上とレビューだけで十分 → 小規模開発・個人開発向け
 
-**注意:** npmパッケージ未公開の場合は、以下のコマンドで実行：
+**注意:** npxがうまく動かない場合は、以下のコマンドでローカル実行：
 ```bash
-cd .setup-tool
+# リポジトリをクローン
+git clone https://github.com/msd-dev-lab/python-dev-template.git /tmp/python-template
+cd /tmp/python-template/.setup-tool
 npm install
-# フル版
 node setup.js
-# Lite版
-node ../scripts/setup-lite.js
 ```
 
 ### ステップ3: GitHubにアップ
