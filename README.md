@@ -58,7 +58,7 @@ rsync -av --exclude='.git' ~/Desktop/project/python-dev-template/ .
 npx cc-sdd@latest --claude --lang ja
 
 # 2. フルセットアップ実行
-npx github:msd-dev-lab/python-dev-template
+npx -p github:msd-dev-lab/python-dev-template setup-python-dev
 ```
 
 このコマンドが自動的に：
