@@ -58,7 +58,7 @@ rsync -av --exclude='.git' ~/Desktop/project/python-dev-template/ .
 npx cc-sdd@latest --claude --lang ja
 
 # 2. フルセットアップ実行
-npx github:msd-dev-lab/python-dev-template/.setup-tool
+npx github:msd-dev-lab/python-dev-template
 ```
 
 このコマンドが自動的に：
@@ -76,7 +76,7 @@ cc-sddを使わない場合はこちら。コード品質ツールと作業記�
 
 ```bash
 # ライトセットアップ実行（cc-sdd不要）
-npx github:msd-dev-lab/python-dev-template/scripts setup-lite.js
+npx -p github:msd-dev-lab/python-dev-template setup-python-dev-lite
 ```
 
 このコマンドが自動的に：

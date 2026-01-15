@@ -4,7 +4,8 @@
   "description": "Python development template with automated quality checks",
   "type": "module",
   "bin": {
-    "setup-python-dev": "./scripts/setup.js"
+    "setup-python-dev": "./scripts/setup.js",
+    "setup-python-dev-lite": "./scripts/setup-lite.js"
   },
   "scripts": {
     "setup": "node scripts/setup.js"
